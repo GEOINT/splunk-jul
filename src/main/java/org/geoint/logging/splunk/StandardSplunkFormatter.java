@@ -83,6 +83,7 @@ public class StandardSplunkFormatter extends Formatter {
             formatException(ex, sb);
         }
 
+        sb.append(System.lineSeparator());
         return sb.toString();
     }
 
