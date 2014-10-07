@@ -2,6 +2,7 @@ package org.geoint.logging.splunk;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
@@ -74,6 +75,15 @@ public class StandardSplunkFormatter extends Formatter {
                 .append(QUOTE).append(lr.getSourceClassName())
                 .append(CLASS_METHOD_SEPARATOR).append(lr.getSourceMethodName())
                 .append(QUOTE);
+
+        if (lr instanceof SplunkLogRecord) {
+            for (Entry<String, String> field : ((SplunkLogRecord) lr).getFields()) {
+                sb.append(FIELD_SEPARATOR)
+                        .append(field.getKey())
+                        .append(KV_SEPARATOR)
+                        .append(field.getValue());
+            }
+        }
 
         Throwable ex = lr.getThrown();
         if (ex != null) {
