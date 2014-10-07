@@ -2,7 +2,9 @@ package org.geoint.logging.splunk;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TimeZone;
@@ -51,7 +53,7 @@ public class StandardSplunkFormatter extends Formatter {
                 @Override
                 protected SimpleDateFormat initialValue() {
                     SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
-                    format.setTimeZone(TimeZone.getTimeZone("GMT"));
+                    format.setTimeZone(TimeZone.getTimeZone("UTC"));
                     return format;
                 }
             };
@@ -85,7 +87,10 @@ public class StandardSplunkFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
         StringBuilder sb = new StringBuilder();
-        sb.append(dateFormat.get().format(new Date(lr.getMillis())));
+        //TODO use javax.time 
+        Calendar cal = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTimeInMillis(lr.getMillis());
+        sb.append(dateFormat.get().format(cal.getTime()));
 
         appendKV(sb, KEY_LEVEL, lr.getLevel().getName());//log level
         appendKV(sb, KEY_LOGGER, lr.getLoggerName());  //logger name
