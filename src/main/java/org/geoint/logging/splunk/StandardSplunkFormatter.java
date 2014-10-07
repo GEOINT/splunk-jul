@@ -67,7 +67,7 @@ public class StandardSplunkFormatter extends Formatter {
                 .append(FIELD_SEPARATOR)
                 //message
                 .append(KEY_MSG).append(KV_SEPARATOR)
-                .append(QUOTE).append(lr.getMessage()).append(QUOTE)
+                .append(QUOTE).append(formatMessage(lr)).append(QUOTE)
                 .append(FIELD_SEPARATOR)
                 //log source class+method
                 .append(KEY_SOURCE).append(KV_SEPARATOR)
