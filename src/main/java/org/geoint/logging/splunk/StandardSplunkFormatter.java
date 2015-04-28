@@ -100,9 +100,9 @@ public class StandardSplunkFormatter extends Formatter {
                 + lr.getSourceMethodName()); //log source class+method
 
         if (lr instanceof SplunkLogRecord) {
-            for (Entry<String, String> field : ((SplunkLogRecord) lr).getFields()) {
+            ((SplunkLogRecord) lr).getFields().stream().forEach((field) -> {
                 appendKV(sb, normalize(field.getKey()), field.getValue());
-            }
+            });
         }
 
         Throwable ex = lr.getThrown();
@@ -122,7 +122,7 @@ public class StandardSplunkFormatter extends Formatter {
                 .append(key) //normally don't need to normalize keys -- do this manually as needed
                 .append(KV_SEPARATOR)
                 .append(QUOTE)
-                .append(normalize(value))
+                .append((value == null) ? "" : normalize(value))
                 .append(QUOTE);
     }
 
@@ -134,7 +134,6 @@ public class StandardSplunkFormatter extends Formatter {
      * @param value
      */
     private String normalize(String value) {
-        //TODO 1.8 use streams
         for (SplunkNormalizer n : normalizers) {
             value = n.normalize(value);
         }
