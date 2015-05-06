@@ -3,7 +3,7 @@ package org.geoint.logging.splunk;
 /**
  * Normalizes a splunk event field name or value.
  */
-//@FunctionalInterface
+@FunctionalInterface
 public interface SplunkNormalizer {
 
     /**

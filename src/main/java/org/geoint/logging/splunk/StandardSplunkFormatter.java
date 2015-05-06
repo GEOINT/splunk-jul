@@ -1,13 +1,12 @@
 package org.geoint.logging.splunk;
 
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.TimeZone;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
@@ -48,28 +47,16 @@ public class StandardSplunkFormatter extends Formatter {
     private static final String FIELD_SEPARATOR = ", ";
     private static final char QUOTE = '"';
     private static final String DATE_FORMAT = "yyyy-MM-dd hh:mm:ss.SSS Z";
-    private static final ThreadLocal<SimpleDateFormat> dateFormat
-            = new ThreadLocal<SimpleDateFormat>() {
-                @Override
-                protected SimpleDateFormat initialValue() {
-                    SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
-                    format.setTimeZone(TimeZone.getTimeZone("UTC"));
-                    return format;
-                }
-            };
+    private static final DateTimeFormatter DATE_FORMATTER
+            = DateTimeFormatter.ofPattern(DATE_FORMAT);
+
     private final List<SplunkNormalizer> normalizers = new ArrayList<>();
 
     public StandardSplunkFormatter() {
         //add default normalizers
-        //TODO replace these with lambdas
-
-        //replaces double quotes with single quotes
-        normalizers.add(new SplunkNormalizer() {
-
-            @Override
-            public String normalize(String raw) {
-                return raw.replace("\"", "'");
-            }
+        normalizers.add((raw) -> {
+            //replaces double quotes with single quotes
+            return raw.replace("\"", "'");
         });
     }
 
@@ -87,10 +74,11 @@ public class StandardSplunkFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
         StringBuilder sb = new StringBuilder();
-        //TODO use javax.time 
-        Calendar cal = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTimeInMillis(lr.getMillis());
-        sb.append(dateFormat.get().format(cal.getTime()));
+        ZonedDateTime datetime = ZonedDateTime.ofInstant(
+                Instant.ofEpochMilli(lr.getMillis()), ZoneOffset.UTC
+        );
+
+        sb.append(DATE_FORMATTER.format(datetime));
 
         appendKV(sb, KEY_LEVEL, lr.getLevel().getName());//log level
         appendKV(sb, KEY_LOGGER, lr.getLoggerName());  //logger name
@@ -134,7 +122,6 @@ public class StandardSplunkFormatter extends Formatter {
      * @param value
      */
     private String normalize(String value) {
-        //TODO 1.8 use streams
         for (SplunkNormalizer n : normalizers) {
             value = n.normalize(value);
         }
@@ -182,8 +169,71 @@ public class StandardSplunkFormatter extends Formatter {
                 .append(JSON_QUOTE)
                 .append(JSON_KV_SEPARATOR)
                 .append(JSON_QUOTE)
-                .append(value) //TODO escape for json + splunk
+                .append(escapeJson(value))
                 .append(JSON_QUOTE);
+    }
+
+    /**
+     * Escapes the provided raw string IAW RFC 4627.
+     *
+     * @param raw
+     * @return escaped string IAW RFC 4627
+     */
+    private String escapeJson(String string) {
+        //shamelessly copied from Jettison v1.3.7 (Apachev2).  props!
+
+        if (string == null || string.length() == 0) {
+            return "\"\"";
+        }
+
+        char c = 0;
+        int i;
+        int len = string.length();
+        StringBuilder sb = new StringBuilder(len + 4);
+        String t;
+
+        sb.append('"');
+        for (i = 0; i < len; i += 1) {
+            c = string.charAt(i);
+            switch (c) {
+                case '\\':
+                case '"':
+                    sb.append('\\');
+                    sb.append(c);
+                    break;
+                case '/':
+                    if (i > 0 && string.charAt(i - 1) == '<') {
+                        sb.append('\\');
+                    }
+                    sb.append(c);
+                    break;
+                case '\b':
+                    sb.append("\\b");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\f':
+                    sb.append("\\f");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                default:
+                    if (c < ' ') {
+                        t = "000" + Integer.toHexString(c);
+                        sb.append("\\u")
+                                .append(t.substring(t.length() - 4));
+                    } else {
+                        sb.append(c);
+                    }
+            }
+        }
+        sb.append('"');
+        return sb.toString();
     }
 
 }
