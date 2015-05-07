@@ -3,8 +3,7 @@ package org.geoint.logging.splunk.crypto;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.TreeMap;
 import javax.xml.bind.DatatypeConverter;
 import org.geoint.logging.splunk.SplunkEvent;
 import org.geoint.logging.splunk.jul.SplunkLogRecord;
@@ -60,8 +59,9 @@ public final class MessageDigestRecordHasher implements SplunkEventHasher {
 
     @Override
     public EventHash hash(SplunkEvent event) {
-        event.getFields().entrySet().stream()
-                .sorted() //sort by keys natural sort order
+        TreeMap<String, String> fields = new TreeMap<>(event.getFields());
+
+        fields.entrySet().stream()
                 .map((e) -> String.join(FIELD_KV_GLUE, e.getKey(), e.getValue()))
                 .forEach((kv) -> digest.update(kv.getBytes(StandardCharsets.UTF_8)));
         return new MessageDigestEventHash(digest);
